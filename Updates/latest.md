@@ -1,1 +1,1 @@
-Updater test release
+Initial release
