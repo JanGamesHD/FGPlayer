@@ -1,1 +1,1 @@
-* Added a lonely Ingame System, which should (hopefully) optimise Performance (21.09.2025)
+The script is now tracking player numbers during matchmaking + some other improvements
