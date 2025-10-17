@@ -6,3 +6,5 @@ This project is still in partial delevopement, meaning that there is unfinished 
 
 You can run the Start.bat script, which will automatically download FGPlayer.
 FGPlayer is using external dependencies.
+
+This project is not affiliated with MediaTonic or Epic Games.
