@@ -1,4 +1,5 @@
-Updates and bug fixes:
-- Cancelling matchmkaing no longer results in a main menu soft lock
-- When the lonely ingame system is enabled, the script will sleep for one second in specific areas to avoid overloading the CPU
-Released: 02.12.2025
+Fixed an issue which could cause a soft lock when reaching the victory screen if the player got eliminated before the final round
+Optimised the scripts overall performance
+
+Note: If the lonely ingame system has been enabled, the script will re-check the log file every second in certain
+situations to avoid high CPU usage.
