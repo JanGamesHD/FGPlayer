@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.20)
+echo FGPlayer (Public Beta v.1.21)
 echo Please wait. Initializing FGPlayer...
 set magicnumber=30
 rem Here you can specify the log file location. The default is %userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log
@@ -32,7 +32,7 @@ set sessiondate=%sessiondate:-=%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.20 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.21 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
 echo Note: If you restart Fall Guys, please restart FGPlayer to reset the log file position.
@@ -119,7 +119,7 @@ if not %errorlevel%==0 goto cur_waitformatchmakingconnected
 color 1
 cls
 echo ^<33P^> Joining queue ...
-start /min cmd /c timer.bat
+start /min conhost --headless cmd /c timer.bat
 :cur_waitforqueueconnect
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
@@ -539,7 +539,10 @@ REM if not %totalplayers%==%curloadedplayers% echo Players: %totalplayers%
 :cur_afterplayerlistings
 if defined skipplayernums set totalplayers=%curloadedplayers%
 if not %totalplayers%==%curloadedplayers% set curloadedplayers=%totalplayers%
-if not defined skipplayernums echo %playerlistings:~1%
+if not defined skipplayernums (
+cls
+echo Map: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
+)
 if not %issquad%==0 goto cur_waitforcountdown
 if not %currentround%==0 goto cur_waitforcountdown
 find "Squad ID: 1" TEMP.gen >NUL
@@ -570,10 +573,11 @@ set /p lines=<lines.sys
 cls
 REM echo 3... 2... 1...
 rem set /a currentround=%currentround%+1
-echo 3... 2... 1... R%currentround%: !mapname! Players: %curloadedplayers%
+if defined skipplayernums echo 3... 2... 1... R%currentround%: !mapname! - Players: %curloadedplayers%
+if not defined skipplayernums echo 3... 2... 1... R%currentround%: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 REM echo Players: %curloadedplayers%
-if not defined skipplayernums echo %playerlistings:~1%
-start /min timer.bat
+rem if not defined skipplayernums echo %playerlistings:~1%
+start /min conhost --headless cmd /c timer.bat
 if not defined showcounter set showcounter=0
 
 :cur_waitforgamestart
