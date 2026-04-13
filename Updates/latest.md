@@ -1,1 +1,2 @@
-This Update moves more information to the top Bar
+- Fixed Powershell changing font by executing powershell for fetching creative level data in the background instead of inside of FGPlayer
+- Started using NT Escape characters in some places instead of cls to fix flashing issues
