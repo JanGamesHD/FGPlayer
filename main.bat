@@ -1,7 +1,11 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.21)
+echo FGPlayer (Public Beta v.1.22)
+if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
+for /f "delims=" %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
+echo %ESC%[?25l
+:afterinitmsg
 set magicnumber=30
 rem Here you can specify the log file location. The default is %userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log
 rem You should only change this, if you want to run this script on a different device than you´re running Fall Guys on.
@@ -32,7 +36,8 @@ set sessiondate=%sessiondate:-=%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.21 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.22 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
 echo Note: If you restart Fall Guys, please restart FGPlayer to reset the log file position.
@@ -100,6 +105,8 @@ find /i "​[StateMainMenu] Creating or joining private lobby minimal" TEMP.gen 
 if %errorlevel%==0 goto cur_joincustomsmini
 find /i "​[StateMainMenu] Creating or joining private lobby" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_joincustoms
+find /i "[GameStateMachine] Setting initial state to FGClient.StateMainMenu" TEMP.gen >NUL
+if %errorlevel%==0 goto cur_loginstatus
 find /i "​[StateMainMenu] No server address specified, attempting to matchmake" TEMP.gen >NUL
 if not %errorlevel%==0 goto general_waitingarea
 :cur_connectingmatchmaking
@@ -129,8 +136,8 @@ if %disconnectallowed%==1 goto cur_cancelledmatchmaking
 find /i "Queued" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforqueueconnect
 color 3
-cls
-echo ^<66P^> Joining queue (Waiting for Squad) ...
+rem cls
+echo %ESC%[1;1H^<66P^> Joining queue (Waiting for Squad) ...
 set matchmakehistory=Connected
 set seconds=0
 set minutes=0
@@ -209,7 +216,7 @@ echo a>quittimer.sys
 :cur_waitforlogin
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
-find /i "Connection 0 created with" TEMP.gen >NUL
+find /i "Welcome received" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforlogin
 color 1
 cls
@@ -310,6 +317,7 @@ cls
 echo Waiting for Map ...
 set completedunimapdetection=0
 set completedcreativelevel=0
+set addinfo=
 :cur_waitforanimationtofinish
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
@@ -405,6 +413,11 @@ set /p mapname=<MAPS\%unimap%.map
 :cur_afterclassicmap
 color e
 if %performclip%==1 echo %mapname% (%theunimap%) - %themap% | clip
+if defined addinfo set addinfo=%maploadtime%, %addinfo%
+if not defined addinfo set addinfo=%maploadtime%
+rem if not %curloadedplayers%==%lastloadedplayers% goto endingnewmap
+if not defined curloadedplayers set curloadedplayers=0
+if not defined lastloadedplayers set lastloadedplayers=-1
 :endingnewmap
 set completedunimapdetection=0
 if not defined mapname set mapname=%theunimap:FallGuy_=%
@@ -417,8 +430,8 @@ set /a remain2=%remain%+1
 if %usereliminated%==1 set /a remain2=%remain%+2
 if %usereliminated%==1 set /a curloadedplayers2=%curloadedplayers%-2
 if %remain2% LEQ 0 goto cur_maploadonlyplayers
-cls
-echo Players: %curloadedplayers2%/%maxloadedplayers% - Remain: %remain2% - Map: !mapname! (%maploadtime%)
+rem cls
+echo %ESC%[1;1HPlayers: %curloadedplayers2%/%maxloadedplayers% - Remain: %remain2% - Map: !mapname! (%addinfo%)  
 REM echo Map: %mapname% (%theunimap:FallGuy_=%) - %themap%
 REM echo Players: %curloadedplayers2%/%maxloadedplayers%
 REM echo Remain: %remain2%
@@ -540,8 +553,8 @@ REM if not %totalplayers%==%curloadedplayers% echo Players: %totalplayers%
 if defined skipplayernums set totalplayers=%curloadedplayers%
 if not %totalplayers%==%curloadedplayers% set curloadedplayers=%totalplayers%
 if not defined skipplayernums (
-cls
-echo Map: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
+rem cls
+echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 )
 if not %issquad%==0 goto cur_waitforcountdown
 if not %currentround%==0 goto cur_waitforcountdown
@@ -554,7 +567,7 @@ rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" 
 more /e +%lines% "%logfile%" >TEMP.gen
 find /i "[StateMainMenu] Loading scene MainMenu" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_checkaddelimmainmenu
-find /i "[GameSession] Changing state from Precountdown to Countdown" TEMP.gen >NUL
+find /i "[ClientGameManager] Setting this client as readiness state 'ReadyToPlay'." TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforcountdown
 color 5
 cls
@@ -610,8 +623,8 @@ set text=%text% R%currentround%: !mapname!
 if %playersqualified% GTR 0 set text=%text% - Qualified: %playersqualified%
 if %playerseliminated% GTR 0 set text=%text% - Eliminated: %playerseliminated%
 if %usereliminated%==1 set text=%text% (Eliminated)
-cls
-echo %text%
+rem cls
+echo %ESC%[1;1H%text%
 goto :EOF
 :cur_ingame
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" "%cd%"\TEMP1.log >NUL
@@ -682,14 +695,15 @@ set playersqualified=%inl:~-2%
 set playersqualified=%playersqualified: =%
 :skipsurvivalmaptest
 color c
-cls
-echo Round %currentround% Over! Took: %seconds: =%s - Map: !mapname!
+rem cls
+echo %ESC%[1;1HRound %currentround% Over! Took: %seconds: =%s - Map: !mapname!
 find /i "is succeeded=True" TEMP.gen >successlist.txt
 more /e +2 successlist.txt >successlist2.txt
 findstr /R /N "^" "successlist2.txt" | find /C ":" >qualplayers.txt
 set /p playersqualified=<qualplayers.txt
 cls
-echo Round %currentround% Over! Took: %seconds: =%s - Map: !mapname! - Qualified: %playersqualified%
+echo %ESC%[1;1HRound %currentround% Over! Took: %seconds: =%s - Map: !mapname! - Qualified: %playersqualified%
+set usernoteliminated=0
 echo R%currentround%: !mapname! (%maxloadedplayers% --^> %playersqualified%) >>roundlist.sys
 set "elimaction=(%maxloadedplayers% --> %playersqualified%)"
 set "elimaction2=(--> %playersqualified%)"
@@ -712,15 +726,27 @@ if %lonelyingamesystem%==1 timeout 1 >NUL
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" "%cd%"\TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
 if %usereliminated%==1 goto cur_afterrounddisplaycheck
+if %usernoteliminated%==1 goto cur_afterrounddisplaycheck
 find /i "Qualified: False" TEMP.gen>NUL
-if not %errorlevel%==0 goto cur_afterrounddisplaycheck
+if %errorlevel%==0 goto cur_roundoverelimuser
+find "Qualified: True" TEMP.gen>NUL
+if %errorlevel%==0 (
+rem cls
+color 6
+echo %ESC%[1;1HRound %currentround% Over! Took: %seconds: =%s - Map: !mapname! - Qualified: %playersqualified% - You Won!
+set usernoteliminated=1
+if exist private\fmedia\fmedia.exe start /min conhost --headless cmd /c private\fmedia\fmedia.exe private\fmedia\won.mp3
+)
+goto cur_afterrounddisplaycheck
+:cur_roundoverelimuser
 set usereliminated=1
 if %blockrewards%==1 goto cur_afterroundoverelimwrite
 set /a stats.eliminated=%stats.eliminated%+1
 echo %stats.eliminated% >stats.eliminated.sys
 start /min cmd /c stats_addelimination.bat
 :cur_afterroundoverelimwrite
-echo You have been eliminated. (Just now)
+cls
+echo %ESC%[1;1HRound %currentround% Over! Took: %seconds: =%s - Map: !mapname! - Qualified: %playersqualified% - You have been eliminated. (Just now)
 :cur_afterrounddisplaycheck
 find /i "[StateMainMenu] Loading scene MainMenu" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_checkaddelimmainmenu
@@ -795,8 +821,8 @@ echo !roundhistory!
 echo Qualified in Final Round: %playersqualified%
 goto :EOF
 :cur_maploadonlyplayers
-cls
-echo Players: %curloadedplayers2% - Map: !mapname! (%maploadtime%).
+rem cls
+echo %ESC%[1;1HPlayers: %curloadedplayers2% - Map: !mapname! (%addinfo%).                                                                     
 REM echo Map loaded in %maploadtime%. Waiting for players.
 REM echo Map: %mapname% (%theunimap:FallGuy_=%) - %themap%
 REM echo Players: %curloadedplayers2%
@@ -908,9 +934,13 @@ set completedunimapdetection=1
 set unimap=%theunimap%
 if not exist MAPS\%unimap%.map set mapname=%unimap:FallGuy_=%
 set /p mapname=<MAPS\%unimap%.map
-cls
-echo Loading Map !mapname! (%theunimap%) ...
+rem cls
+echo %ESC%[1;1HLoading Map !mapname! (%theunimap%) ...
 if %performclip%==1 echo %mapname% (%theunimap%) | clip
+if not exist STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt goto cur_onlywaitformapload
+dir /tw STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt | find "plays.txt" >getlvllastplay.txt
+set /p addinfo=<getlvllastplay.txt
+set addinfo=%addinfo:~0,17%
 goto cur_onlywaitformapload
 
 :serverdisconnectedyou
@@ -985,17 +1015,22 @@ dir /ON /B >onlysharecode.txt
 set /p sharecode=<onlysharecode.txt
 cd ..
 rd GetCreative /Q /S
+if not exist MAPS\CREATIVE-%sharecode%.txt goto cur_aftercreativelastplayed
+dir /ta MAPS\CREATIVE-%sharecode%.txt | find "CREATIVE-%sharecode%.txt" >getlvllastplay.txt
+set /p addinfo=<getlvllastplay.txt
+set addinfo=%addinfo:~0,17%
+:cur_aftercreativelastplayed
 if exist MAPS\CREATIVE-%sharecode%.txt goto cur_loadsharecache
 cls
-echo Looking up level: %sharecode% ...
-echo ^[----------^] 00
+echo Looking up level: %sharecode% ... ^[----------^] 00
+rem %ESC%[1;1
+rem echo 
 set lvlcode=%sharecode%
 if defined dontperformlvllookup set mapname=%sharecode% && goto cur_displaycreativelevel
 curl -q -A "%useragent%" https://api2.fallguysdb.info/api/creative/%lvlcode%.json>levelcodedown.txt
 cls
-echo Extracting level ...
-echo ^[#####-----^] 50
-powershell -Command "& {Get-Content levelcodedown.txt | ConvertFrom-Json | ConvertTo-Json -Depth 10 | Out-File getlevelcode.txt}"
+echo Extracting level ... ^[#####-----^] 50
+start /wait /min conhost --headless cmd /c powershell -Command "& {Get-Content levelcodedown.txt | ConvertFrom-Json | ConvertTo-Json -Depth 10 | Out-File getlevelcode.txt}"
 REM del getlevelcode.txt /q /f >NUL
 REM start /min cmd /c DecodeLevel.bat
 REM rem pause
@@ -1020,8 +1055,8 @@ set mapname=%sharecode%
 set completedcreativelevel=1
 :cur_displaycreativelevel
 set mapname=!mapname:\u0027='!
-cls
-echo Loading map !mapname! (%sharecode%) ...
+rem cls
+echo %ESC%[1;1HLoading map !mapname! (%sharecode%) ...
 goto cur_onlywaitformapload
 
 :newingame
@@ -1046,8 +1081,8 @@ if %playersqualified% GTR 0 set text=%text% - Qualified: %playersqualified%
 if %playerseliminated% GTR 0 set text=%text% - Eliminated: %playerseliminated%
 if %usereliminated%==1 set text=%text% (Eliminated)
 rem if %usereliminated%==1 echo eliminated
-cls
-echo %text%
+rem cls
+echo %ESC%[1;1H%text%
 rem echo ownqual: %byownqualcheck%, globqual: %byglobqualcheck%, globelim: %byglobelimcheck%, timer: %byglobtimercheck%
 goto :EOF
 :cur_newingametimecheck
@@ -1178,8 +1213,8 @@ find /i "[GameSession] Changing state from Playing to GameOver" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_ingame_lonely
 echo Round Over! && goto cur_ingame
 :cur_gamerunning_lonely
-cls
-echo TIME: %seconds% R%currentround%: !mapname!
+rem cls
+echo %ESC%[1;1HTIME: %seconds% R%currentround%: !mapname!
 timeout 1 >NUL
 goto :EOF
 
@@ -1189,3 +1224,135 @@ set /a stats.eliminated=%stats.eliminated%+1
 echo %stats.eliminated% >stats.eliminated.sys
 start /min cmd /c stats_addelimination.bat
 goto cur_clsmainmenu
+
+:cur_loginstatus
+cls
+color e
+echo Connecting ... ^[                 ^]
+:cur_waitloginstep1
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[EpicAccountsHelper] Starting EOS Login" TEMP.gen >NUL
+if not %errorlevel%==0 goto cur_waitloginstep1
+cls
+echo Logging In ... ^[#                ^]
+:cur_waitloginstep2
+more /e +%lines% "%logfile%" >TEMP.gen
+find "LoginCallBackResult : Success" TEMP.gen >NUL
+if not %errorlevel%==0 goto cur_waitloginstep2
+cls
+echo Logging into Catapult ... ^[##               ^]
+:cur_waitloginstep3
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[EpicAccountsHelper] EOS Login Completed" TEMP.gen >NUL
+if not %errorlevel%==0 goto cur_waitloginstep3
+cls
+echo Checking for EULA ... ^[###              ^]
+:cur_waitloginstep4
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] State changed from 'CheckingEula' to 'LoggingIn'" TEMP.gen >NUL
+if not %errorlevel%==0 goto cur_waitloginstep4
+cls
+echo Logging Into Fall Guys ... ^[####             ^]
+:cur_waitloginstep5
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[GamefuelContentDownloader] Validating certificate, errors: None" TEMP.gen >NUL
+if %errorlevel%==0 goto cur_waitloginstepcontentdownload
+find "[CatapultServicesManager] State changed from 'LoggingIn' to 'ConnectingToGatewayServer'" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep5
+goto cur_waitloginstep6wait
+
+:cur_waitloginstepcontentdownload
+cls
+echo Downloading Content Update ... ^[#####            ^]
+:cur_waitdownloadcontentupdate
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[GamefuelContentDownloader] Download finished" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitdownloadcontentupdate
+cls
+echo Download completed!
+:cur_waitloginstepspecial
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] State changed from 'LoggingIn' to 'ConnectingToGatewayServer'" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstepspecial
+:cur_waitloginstep6wait
+cls
+echo Connecting to Gateway server ... ^[######           ^]
+:cur_waitloginstep6
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] State changed from 'ConnectingToGatewayServer' to 'Authenticating'" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_Waitloginstep6
+cls
+echo Logging Into Gateway server .... ^[#######          ^]
+:cur_waitloginstep7
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] State changed from 'Authenticating' to 'LoadingGameServices'" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep7
+cls
+echo Loading game ... ^[########         ^]
+:cur_waitloginstep8
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[RewardService] Claim all rewards" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep8
+cls
+echo Claiming all rewards ... ^[#########        ^]
+:cur_waitloginstep9
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[PlayerStats] [UpdateCache] Player stats updated" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep9
+cls
+echo Claimed all rewards. ^[##########       ^]
+:cur_waitloginstep10
+more /e +%lines% "%logfile%" >TEMP.gen
+find "Received achievement from Catapult" TEMP.gen >nul
+if %errorlevel%==0 goto cur_waitloginstep10special
+find "[PlayerSeasonService] Refresh season in" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep10
+goto cur_waitloginstep11wait
+
+:cur_waitloginstep10special
+cls
+echo Receiving catapult achivements ... ^[##########       ^]
+:cur_waitloginstep11
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[PlayerSeasonService] Refresh season in" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep11
+:cur_waitloginstep11wait
+cls
+echo Waiting for game services ... ^[###########      ^]
+:cur_waitloginstep12
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] State changed from 'LoadingGameServices' to 'Connected'" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep12
+cls
+echo Game Services loaded. ^[############     ^]
+:cur_waitloginstep13
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] Loading and parsing content:" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep13
+cls
+echo Loading content update ... ^[#############    ^]
+:cur_waitloginstep14
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CatapultServicesManager] CMS data parsed successfully" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep14
+cls
+echo Content update loaded! ^[##############   ^]
+:cur_waitloginstep15
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[CATAPULT] Login Succeeded" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep15
+cls
+echo Logged into Catapult! ^[###############  ^]
+:cur_waitloginstep16
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[PartyStateManager] Attempting to create core party after returning to main menu" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep16
+cls
+echo Creating party ... ^[################ ^]
+:cur_waitloginstep17
+more /e +%lines% "%logfile%" >TEMP.gen
+find "[PartyStateManager] Create native party" TEMP.gen >nul
+if not %errorlevel%==0 goto cur_waitloginstep17
+cls
+echo Done! Updating log file ...
+goto cur_resettemp
