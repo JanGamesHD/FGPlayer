@@ -1,2 +1,1 @@
-- Fixed Powershell changing font by executing powershell for fetching creative level data in the background instead of inside of FGPlayer
-- Started using NT Escape characters in some places instead of cls to fix flashing issues
+Fixed getting stuck on "Logging In" duing Catapult Login due to log file changes
