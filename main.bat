@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.22)
+echo FGPlayer (Public Beta v.1.23)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 for /f "delims=" %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
@@ -36,7 +36,7 @@ set sessiondate=%sessiondate:-=%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.22 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.23 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
@@ -171,7 +171,7 @@ if %currentmatchplayers%==%lastmatchplayers% goto cur_playermatchmaking_aftertex
 echo a>startcount.sys
 if %bypassattempt%==1 goto cur_playermatchmaking_aftertext
 cls
-if %currentmatchplayers%==null if %bypassattempt%==0 echo Attempting to connect ...
+if %currentmatchplayers%==null if %bypassattempt%==0 echo Waiting for a game server ...
 if not %currentmatchplayers%==null echo Queued. Players waiting for a match: %currentmatchplayers% (%curtime%, %minutes%:%seconds%)
 if not %currentmatchplayers%==null if not %currentmatchplayers%==%lastmatchplayers% set "matchmakehistory=%currentmatchplayers% <-- %matchmakehistory%"
 if not %currentmatchplayers%==null echo History: !matchmakehistory!
@@ -1237,7 +1237,7 @@ cls
 echo Logging In ... ^[#                ^]
 :cur_waitloginstep2
 more /e +%lines% "%logfile%" >TEMP.gen
-find "LoginCallBackResult : Success" TEMP.gen >NUL
+find "Login complete: EOS_Success" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitloginstep2
 cls
 echo Logging into Catapult ... ^[##               ^]
