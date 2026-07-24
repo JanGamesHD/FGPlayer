@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.23)
+echo FGPlayer (Public Beta v.1.24)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 for /f "delims=" %%a in ('echo prompt $E^| cmd') do set "ESC=%%a"
@@ -30,13 +30,14 @@ if %usenewingamesystem%==1 echo WARNING: Test 'usenewingamesystem' active. Pleas
 setlocal enabledelayedexpansion
 if not exist STATS\ goto createstats
 :afterstatscreation
+if not exist STATS\ALLTIME\UGC2MAP\ md STATS\ALLTIME\UGC2MAP\
 set sessiondate=%date:/=%
 set sessiondate=%sessiondate:.=%
 set sessiondate=%sessiondate:-=%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.23 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.24 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
@@ -185,7 +186,9 @@ set lastseconds=%seconds%
 :cur_waitforqueueupdate
 rem "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
+if not %errorlevel%==0 goto cur_waitforqueueupdate
 more /e +%linesnomagic% "%logfile%" >TEMP_nomagic.gen
+if not %errorlevel%==0 goto cur_waitforqueueupdate
 find /i "[FNMMSRemoteServiceBase] Remote disconnection received. waiting 5s until we close our side" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_waitingforgameserver
 find /i "[HazelNetworkTransport] Creating connection with" TEMP.gen >NUL
@@ -216,8 +219,11 @@ echo a>quittimer.sys
 :cur_waitforlogin
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
+find "​[Network] Client connected" TEMP.gen >NUL
+if %errorlevel%==0 goto cur_loggingingameserver
 find /i "Welcome received" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforlogin
+:cur_loggingingameserver
 color 1
 cls
 echo Logging In ... (Waiting for server)
@@ -317,6 +323,7 @@ cls
 echo Waiting for Map ...
 set completedunimapdetection=0
 set completedcreativelevel=0
+set iscreative=0
 set addinfo=
 :cur_waitforanimationtofinish
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
@@ -329,18 +336,24 @@ color c
 cls
 echo Loading map ...
 if exist private\fmedia.bat taskkill /F /IM fmedia.exe >NUL
+set dotload=.
+set dotcount=0
+set mapmsg=Empty
 :cur_waitformaploadtocomplete
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
 if %completedunimapdetection%==1 goto cur_onlywaitformapload
 find /i "​[RoundLoader] Game level to load:" TEMP.gen >loadearlymapname.txt
-if %errorlevel%==0 goto cur_loadearlymapname
+if %errorlevel%==0 set dotcount=1 && goto cur_loadearlymapname
 if %completedcreativelevel%==1 goto cur_onlywaitformapload
 find /i "[RoundLoader] Load UGC via share code" TEMP.gen >creativesharecode.txt
-if %errorlevel%==0 goto cur_creativeleveldetected
+if %errorlevel%==0 set dotcount=1 && goto cur_creativeleveldetected
 :cur_onlywaitformapload
 find /i "[RoundLoader] Loading finished with state Cancelled" TEMP.gen >NUL
 if %errorlevel%==0 goto failedtoloadlevel
+if %dotcount% GEQ 1 echo %ESC%[1;1H%mapmsg% %dotload%
+if %dotcount% LSS 300 set dotload=%dotload%.
+if %dotcount% LEQ 300 set /a dotcount=%dotcount%+1
 find /i "[ClientGameManager] GameLevelLoaded" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitformaploadtocomplete
 cls
@@ -472,6 +485,7 @@ color b
 set /a curloadedplayers=%curloadedplayers%-1
 cls
 echo Map: !mapname! - Players: %curloadedplayers%
+if %iscreative%==1 if not exist STATS\ALLTIME\UGC2MAP\%sharecode%.txt echo %themap%>STATS\ALLTIME\UGC2MAP\%sharecode%.txt
 REM echo Showing the map ...
 REM echo Map: %mapname%
 REM echo Players: %curloadedplayers%
@@ -490,56 +504,56 @@ set botplayers=0
 findstr /R /N "^" "%logfile%" | find /C ":" >lines.sys
 if defined skipplayernums goto cur_afterplayerlistings
 rem PC STEAM
+set playerlistings=
 find /i "[CameraDirector] Adding Spectator target ... (pc_steam)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set pcplayers=%%b
+if not %pcplayers% LEQ 0 set /a pcplayers=%pcplayers%-2
+if %pcplayers% GTR 0 set playerlistings=%playerlistings% PC-Steam: %pcplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo PC PLAYERS EPIC
 find /i "[CameraDirector] Adding Spectator target ... (pc_egs)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set pcegplayers=%%b
+if not %pcegplayers% LEQ 0 set /a pcegplayers=%pcegplayers%-2
+if %pcegplayers% GTR 0 set playerlistings=%playerlistings% PC-Epic: %pcegplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo PS4 PLAYERS
 find /i "[CameraDirector] Adding Spectator target ... (ps4)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set ps4players=%%b
+if not %ps4players% LEQ 0 set /a ps4players=%ps4players%-2
+if %ps4players% GTR 0 set playerlistings=%playerlistings% PS4: %ps4players% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo PS5 PLAYERS
 find /i "[CameraDirector] Adding Spectator target ... (ps5)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set ps5players=%%b
+if not %ps5players% LEQ 0 set /a ps5players=%ps5players%-2
+if %ps5players% GTR 0 set playerlistings=%playerlistings% PS5: %ps5players% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo XBOX PLAYERS
 find /i "[CameraDirector] Adding Spectator target ... (xsx)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set xboxplayers=%%b
-rem echo SWITCH PLAYERS
-find /i "[CameraDirector] Adding Spectator target ... (switch)" TEMP.gen >playerlistfile.log
-for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set switchplayers=%%b
+if not %xboxplayers% LEQ 0 set /a xboxplayers=%xboxplayers%-2
+if %xboxplayers% GTR 0 set playerlistings=%playerlistings% XBOX X/S: %xboxplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo XBOX ONE PLAYERS
 find /i "[CameraDirector] Adding Spectator target ... (xb1)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set xboxoneplayers=%%b
+if not %xboxoneplayers% LEQ 0 set /a xboxoneplayers=%xboxoneplayers%-2
+if %xboxoneplayers% GTR 0 set playerlistings=%playerlistings% XBOX ONE: %xboxoneplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
+rem echo SWITCH PLAYERS
+find /i "[CameraDirector] Adding Spectator target ... (switch)" TEMP.gen >playerlistfile.log
+for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set switchplayers=%%b
+if not %switchplayers% LEQ 0 set /a switchplayers=%switchplayers%-2
+if %switchplayers% GTR 0 set playerlistings=%playerlistings% SWITCH: %switchplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo MOBILE IOS
 find /i "[CameraDirector] Adding Spectator target ... (ios_ega)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set iosplayers=%%b
+if not %iosplayers% LEQ 0 set /a iosplayers=%iosplayers%-2
+if %iosplayers% GTR 0 set playerlistings=%playerlistings% iOS: %iosplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo MOBILE ANDROID
 find /i "[CameraDirector] Adding Spectator target ... (android_ega)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set androidplayers=%%b
+if not %androidplayers% LEQ 0 set /a androidplayers=%androidplayers%-2
+if %androidplayers% GTR 0 set playerlistings=%playerlistings% ADR: %androidplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 rem echo BOTS
 find /i "[CameraDirector] Adding Spectator target ... (bots)" TEMP.gen >playerlistfile.log
 for /f "usebackq" %%b in (`type playerlistfile.log ^| find "" /v /c`) do set botplayers=%%b
-if not %pcegplayers% LEQ 0 set /a pcegplayers=%pcegplayers%-2
-if not %pcplayers% LEQ 0 set /a pcplayers=%pcplayers%-2
-if not %ps4players% LEQ 0 set /a ps4players=%ps4players%-2
-if not %ps5players% LEQ 0 set /a ps5players=%ps5players%-2
-if not %xboxplayers% LEQ 0 set /a xboxplayers=%xboxplayers%-2
-if not %switchplayers% LEQ 0 set /a switchplayers=%switchplayers%-2
-if not %xboxoneplayers% LEQ 0 set /a xboxoneplayers=%xboxoneplayers%-2
-if not %iosplayers% LEQ 0 set /a iosplayers=%iosplayers%-2
-if not %androidplayers% LEQ 0 set /a androidplayers=%androidplayers%-2
 if not %botplayers% LEQ 0 set /a botplayers=%botplayers%-2
-set playerlistings=
-if %pcplayers% GTR 0 set playerlistings=%playerlistings% PC-Steam: %pcplayers%
-if %pcegplayers% GTR 0 set playerlistings=%playerlistings% PC-Epic: %pcegplayers%
-if %botplayers% GTR 0 set playerlistings=%playerlistings% BOTS: %botplayers%
-if %ps4players% GTR 0 set playerlistings=%playerlistings% PS4: %ps4players%
-if %ps5players% GTR 0 set playerlistings=%playerlistings% PS5: %ps5players%
-if %xboxplayers% GTR 0 set playerlistings=%playerlistings% XBOX X/S: %xboxplayers%
-if %xboxoneplayers% GTR 0 set playerlistings=%playerlistings% XBOX ONE: %xboxoneplayers%
-if %switchplayers% GTR 0 set playerlistings=%playerlistings% SWITCH: %switchplayers%
-if %iosplayers% GTR 0 set playerlistings=%playerlistings% iOS: %iosplayers%
-if %androidplayers% GTR 0 set playerlistings=%playerlistings% ADR: %androidplayers%
+if %botplayers% GTR 0 set playerlistings=%playerlistings% BOTS: %botplayers% && echo %ESC%[1;1HMap: !mapname! - Players: %curloadedplayers% - %playerlistings:~1%
 if not defined playerlistings set playerlistings=Loading...
 rem echo %playerlistings%
 set totalplayers=0
@@ -928,6 +942,14 @@ md earlymapname
 cd earlymapname
 md %earlymapname% 2>NUL
 dir FallGuy_* /OD /B >correctmap.txt
+more /e +1 correctmap.txt >outmap.txt
+type nul>empty.sys
+fc outmap.txt empty.sys >nul
+if %errorlevel%==0 goto mid_skipsafemapcheck
+rem 2 different maps, deleting prev to load correctly
+rd %theunimap% /q
+dir FallGuy_* /OD /B >correctmap.txt
+:mid_skipsafemapcheck
 set /p theunimap=<correctmap.txt
 cd ..
 set completedunimapdetection=1
@@ -936,11 +958,45 @@ if not exist MAPS\%unimap%.map set mapname=%unimap:FallGuy_=%
 set /p mapname=<MAPS\%unimap%.map
 rem cls
 echo %ESC%[1;1HLoading Map !mapname! (%theunimap%) ...
+set mapmsg=Loading Map !mapname! (%theunimap%) ...
 if %performclip%==1 echo %mapname% (%theunimap%) | clip
 if not exist STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt goto cur_onlywaitformapload
 dir /tw STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt | find "plays.txt" >getlvllastplay.txt
 set /p addinfo=<getlvllastplay.txt
 set addinfo=%addinfo:~0,17%
+set /p mapstatsqual=<STATS\ALLTIME\ROUNDS\%theunimap%\qualifications.txt
+set /p mapstatselim=<STATS\ALLTIME\ROUNDS\%theunimap%\eliminations.txt
+
+rem if %mapstatsqual%==0 set fractional=0 && goto aftermath_creativemap
+rem if %mapstatselim%==0 set fractional=100 && goto aftermath_creativemap
+
+:: 1. Calculate total matches (Denominator)
+set /a totalmatches_leg=%mapstatsqual% + %mapstatselim%
+
+:: 2. If total is 0, skip to prevent a crash (Division by Zero)
+if %totalmatches_leg%==0 (
+    rem echo Qualification Rate: 0.00%%
+    goto cur_onlywaitformapload
+)
+
+:: 3. Multiply quals by 10000 and divide by total
+set /a scaled=(%mapstatsqual% * 10000) / %totalmatches_leg%
+
+:: 4. Extract whole and fractional parts
+set /a whole=%scaled% / 100
+set /a frac_raw=%scaled% %% 100
+
+:: 5. Pad leading zero for the fractional part if needed
+if %frac_raw% LSS 10 (
+    set fractional=0%frac_raw%
+) else (
+    set fractional=%frac_raw%
+)
+
+rem echo Qualification Rate: %whole%.%fractional%%%
+set whole=%whole: =%
+set fractional=%fractional: =%
+set addinfo=%addinfo% QR %whole%.%fractional%P
 goto cur_onlywaitformapload
 
 :serverdisconnectedyou
@@ -995,6 +1051,7 @@ md STATS\SESSION
 goto aftersessioncheck
 
 :cur_creativeleveldetected
+set iscreative=1
 rem @echo on
 more /e +2 creativesharecode.txt >onlysharecode.txt
 rem set /p sharecode=<onlysharecode.txt
@@ -1019,6 +1076,44 @@ if not exist MAPS\CREATIVE-%sharecode%.txt goto cur_aftercreativelastplayed
 dir /ta MAPS\CREATIVE-%sharecode%.txt | find "CREATIVE-%sharecode%.txt" >getlvllastplay.txt
 set /p addinfo=<getlvllastplay.txt
 set addinfo=%addinfo:~0,17%
+if not exist STATS\ALLTIME\UGC2MAP\%sharecode%.txt goto cur_aftercreativelastplayed
+set /p statsmapname=<STATS\ALLTIME\UGC2MAP\%sharecode%.txt
+set statsmapname=%statsmapname: =%
+if not exist STATS\ALLTIME\ROUNDS\%statsmapname%\ goto cur_aftercreativelastplayed
+set /p mapstatsqual=<STATS\ALLTIME\ROUNDS\%statsmapname%\qualifications.txt
+set /p mapstatselim=<STATS\ALLTIME\ROUNDS\%statsmapname%\eliminations.txt
+
+rem if %mapstatsqual%==0 set fractional=0 && goto aftermath_creativemap
+rem if %mapstatselim%==0 set fractional=100 && goto aftermath_creativemap
+
+:: 1. Calculate total matches (Denominator)
+set /a totalmatches_cre=%mapstatsqual% + %mapstatselim%
+
+:: 2. If total is 0, skip to prevent a crash (Division by Zero)
+if %totalmatches_cre%==0 (
+    rem echo Qualification Rate: 0.00%%
+    goto cur_aftercreativelastplayed
+)
+
+:: 3. Multiply quals by 10000 and divide by total
+set /a scaled=(%mapstatsqual% * 10000) / %totalmatches_cre%
+
+:: 4. Extract whole and fractional parts
+set /a whole=%scaled% / 100
+set /a frac_raw=%scaled% %% 100
+
+:: 5. Pad leading zero for the fractional part if needed
+if %frac_raw% LSS 10 (
+    set fractional=0%frac_raw%
+) else (
+    set fractional=%frac_raw%
+)
+
+rem echo Qualification Rate: %whole%.%fractional%%%
+:aftermath_creativemap
+set whole=%whole: =%
+set fractional=%fractional: =%
+set addinfo=%addinfo% QR %whole%.%fractional%P
 :cur_aftercreativelastplayed
 if exist MAPS\CREATIVE-%sharecode%.txt goto cur_loadsharecache
 cls
@@ -1057,6 +1152,7 @@ set completedcreativelevel=1
 set mapname=!mapname:\u0027='!
 rem cls
 echo %ESC%[1;1HLoading map !mapname! (%sharecode%) ...
+set mapmsg=Loading map !mapname! (%sharecode%) ...
 goto cur_onlywaitformapload
 
 :newingame
