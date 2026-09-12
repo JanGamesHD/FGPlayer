@@ -1,2 +1,2 @@
-Small bug fixes during connection handling with the game server
-Added tracking of qualification rate in levels + last played date
+- Added support for multiple languages via LANG-Batch files (check out LANG_Original.bat)
+- Moved Initial Login status progress bar to the front to prevent offset issues
