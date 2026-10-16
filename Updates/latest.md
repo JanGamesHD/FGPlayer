@@ -1,2 +1,2 @@
-- Added support for multiple languages via LANG-Batch files (check out LANG_Original.bat)
-- Moved Initial Login status progress bar to the front to prevent offset issues
+- Fixed a few things regarding matchmaking
+- Partially fixed leaving during the intro screen no longer causes the fgplayer to get stuck on waiting
