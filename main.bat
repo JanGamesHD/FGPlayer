@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.25)
+echo FGPlayer (Public Beta v.1.26)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 if exist LANG.bat echo Loading LANG.bat file ... && call LANG.bat
@@ -8,7 +8,8 @@ if not defined text.readymm set text.readymm=Ready (for matchmaking).
 if not defined text.mmconnecting set text.mmconnecting=Connecting to matchmaking ...
 if not defined text.mmjoining set text.mmjoining=Joining queue ...
 if not defined text.mmwaitingplayers set text.mmwaitingplayers=Joining queue (Waiting for Squad) ...
-if not defined text.mmemptystring set text.mmemptystring=Waiting for a game server ...
+if not defined text.mmemptystring set text.mmemptystring=Matchmaking Connected!
+if not defined text.mmsessionassignment set text.mmsessionassignment=Session Assigned. Waiting for a game server ...
 if not defined text.mmcurrentplayers set text.mmcurrentplayers=Queued. Players waiting for a match
 if not defined text.mmgameserverstarting set text.mmgameserverstarting=Server starting, please wait ...
 
@@ -126,7 +127,7 @@ set sessiondate=%sessiondate:-=%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.25 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.26 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
@@ -197,6 +198,8 @@ find /i "​[StateMainMenu] Creating or joining private lobby" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_joincustoms
 find /i "[GameStateMachine] Setting initial state to FGClient.StateMainMenu" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_loginstatus
+find /i "GameMessageServerStartLoadingLevel received" TEMP.gen >NUL
+if %errorlevel%==0 if defined wasinmatchmaking goto cur_waitformaptoappear
 find /i "​[StateMainMenu] No server address specified, attempting to matchmake" TEMP.gen >NUL
 if not %errorlevel%==0 goto general_waitingarea
 :cur_connectingmatchmaking
@@ -217,13 +220,18 @@ color 1
 cls
 echo ^<33P^> %text.mmjoining%
 start /min conhost --headless cmd /c timer.bat
+if exist TEMP_nomagic.gen del TEMP_nomagic.gen /q /f >nul
+set mm.ranonce=0
+set wasinmatchmaking=1
+set localtext.mmemptystring=%text.mmemptystring%
+set sessionassignmentrequested=0
 :cur_waitforqueueconnect
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
 find /i "[FNMMSRemoteServiceBase] Disposed" TEMP.gen >matchdisconnect.txt
 if %errorlevel%==0 call :leavematchverify
 if %disconnectallowed%==1 goto cur_cancelledmatchmaking
-find /i "Queued" TEMP.gen >NUL
+find "Queued" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforqueueconnect
 color 3
 rem cls
@@ -260,8 +268,13 @@ if %currentmatchplayers%==%lastmatchplayers% goto cur_playermatchmaking_aftertex
 :cur_mmdisplaytext
 echo a>startcount.sys
 if %bypassattempt%==1 goto cur_playermatchmaking_aftertext
+if exist TEMP_nomagic.gen find "SessionAssignment" TEMP_nomagic.gen >nul
+set errorhere=%errorlevel%
+if %errorhere%==0 if %mm.ranonce%==1 set localtext.mmemptystring=%text.mmsessionassignment% && color e
+if not %errorhere%==0 set localtext.mmemptystring=%text.mmemptystring%
+if %mm.ranonce%==0 set set localtext.mmemptystring=%text.mmemptystring%
 cls
-if %currentmatchplayers%==null if %bypassattempt%==0 echo %text.mmemptystring%
+if %currentmatchplayers%==null if %bypassattempt%==0 echo %localtext.mmemptystring%
 if not %currentmatchplayers%==null echo %text.mmcurrentplayers%: %currentmatchplayers% (%curtime%, %minutes%:%seconds%)
 if not %currentmatchplayers%==null if not %currentmatchplayers%==%lastmatchplayers% set "matchmakehistory=%currentmatchplayers% <-- %matchmakehistory%"
 if not %currentmatchplayers%==null echo History: !matchmakehistory!
@@ -273,15 +286,16 @@ set /a lines=%lines%-%magicnumber%
 set lastmatchplayers=%currentmatchplayers%
 set lastseconds=%seconds%
 :cur_waitforqueueupdate
+set mm.ranonce=1
 rem "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
 if not %errorlevel%==0 goto cur_waitforqueueupdate
 more /e +%linesnomagic% "%logfile%" >TEMP_nomagic.gen
 if not %errorlevel%==0 goto cur_waitforqueueupdate
-find /i "[FNMMSRemoteServiceBase] Remote disconnection received. waiting 5s until we close our side" TEMP.gen >NUL
-if %errorlevel%==0 goto cur_waitingforgameserver
 find /i "[HazelNetworkTransport] Creating connection with" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_connectinggameserver
+find /i "[FNMMSRemoteServiceBase] Remote disconnection received. waiting 5s until we close our side" TEMP.gen >NUL
+if %errorlevel%==0 goto cur_waitingforgameserver
 find /i "[FNMMSRemoteServiceBase] Disposed" TEMP_nomagic.gen >matchdisconnect.txt
 if %errorlevel%==0 call :leavematchverify
 if %disconnectallowed%==1 goto cur_cancelledmatchmaking
@@ -333,7 +347,7 @@ set serverip2=%serverip1:~0,-5%
 set serverip2=%serverip2::=%
 REM del server_details.sys /Q /F >NUL
 REM curl http://ip-api.com/line/%serverip2%?fields=country,regionName,city --silent >server_details.sys
-ping %serverip2% -n 1 >"%cd%\pinganswer.sys"
+ping %serverip2% -n 1 -w 700 >"%cd%\pinganswer.sys"
 for /f "tokens=1*delims=:" %%G in ('findstr /n "^" %cd%\pinganswer.sys') do if %%G equ 3 set ping1=%%H
 md pingtest
 set currentcd=%cd%
@@ -412,6 +426,7 @@ cls
 echo %text.loading_waitmap%
 set completedunimapdetection=0
 set completedcreativelevel=0
+set wasinmatchmaking=
 set iscreative=0
 set addinfo=
 :cur_waitforanimationtofinish
@@ -548,6 +563,8 @@ find /i "[CameraDirector].UseIntroCameras, current camera target type is Close" 
 if %errorlevel%==0 goto waitlastfewplayers
 find /i "[StateGameLoading].OnIntroCamerasComplete, spawning players post intro camera" TEMP.gen >NUL
 if %errorlevel%==0 goto showintro
+find /i "[StateMainMenu] Loading scene MainMenu" TEMP.gen >NUL
+if %errorlevel%==0 goto cur_clsmainmenu
 find /i "[ClientGameManager] Setting this client as readiness state 'ObjectsSpawned'." TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforplayerupdate
 :waitlastfewplayers
@@ -682,6 +699,8 @@ rem findstr /R /N "^" "%logfile%" | find /C ":" >lines.sys # removed on 28.10.20
 :cur_waitforcountdown2
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" "%cd%"\TEMP1.log >NUL
 more /e +%lines% "%logfile%" >TEMP.gen
+find /i "[StateMainMenu] Loading scene MainMenu" TEMP.gen >NUL
+if %errorlevel%==0 goto cur_checkaddelimmainmenu
 find /i "[GameSession] Changing state from Precountdown to Countdown" TEMP.gen >NUL
 if not %errorlevel%==0 goto cur_waitforcountdown2
 color c
@@ -958,6 +977,7 @@ goto cur_afterwoncheck
 :cur_joincustomsmini
 cls
 set blockrewards=1
+set wasinmatchmaking=1
 echo NOTE: This is a discovery level. Rewards are disabled.
 echo.
 echo Connecting to matchmaking ...
@@ -966,6 +986,7 @@ goto cur_waitformatchmakingconnected
 :cur_joincustoms
 cls
 set blockrewards=1
+set wasinmatchmaking=1
 echo Connected to Custom Show.
 echo NOTE: This is a custom show. Rewards are disabled.
 findstr /R /N "^" "%logfile%" | find /C ":" >lines.sys
@@ -1044,7 +1065,7 @@ cd ..
 set completedunimapdetection=1
 set unimap=%theunimap%
 if not exist MAPS\%unimap%.map set mapname=%unimap:FallGuy_=%
-set /p mapname=<MAPS\%unimap%.map
+if exist MAPS\%unimap%.map set /p mapname=<MAPS\%unimap%.map
 rem cls
 echo %ESC%[1;1H%text.loadingmap_known% !mapname! (%theunimap%) ...
 set mapmsg=%text.loadingmap_known% !mapname! (%theunimap%) ...
