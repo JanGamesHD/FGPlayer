@@ -1,2 +1,1 @@
-- Fixed a few things regarding matchmaking
-- Partially fixed leaving during the intro screen no longer causes the fgplayer to get stuck on waiting
+- Fixed regional issues with dates
