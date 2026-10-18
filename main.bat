@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.26)
+echo FGPlayer (Public Beta v.1.27)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 if exist LANG.bat echo Loading LANG.bat file ... && call LANG.bat
@@ -124,10 +124,17 @@ if not exist STATS\ALLTIME\UGC2MAP\ md STATS\ALLTIME\UGC2MAP\
 set sessiondate=%date:/=%
 set sessiondate=%sessiondate:.=%
 set sessiondate=%sessiondate:-=%
+set sessiondate=%sessiondate:Mon =%
+set sessiondate=%sessiondate:Tue =%
+set sessiondate=%sessiondate:Wed =%
+set sessiondate=%sessiondate:Thu =%
+set sessiondate=%sessiondate:Fri =%
+set sessiondate=%sessiondate:Sat =%
+set sessiondate=%sessiondate:Sun =%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.26 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.27 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
