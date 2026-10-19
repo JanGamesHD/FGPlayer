@@ -1,1 +1,2 @@
-- Fixed regional issues with dates
+- Fixed script getting stuck when the Epic Games verison of the game was used while creating the core party
+- (Hopefully) fixed ping detection issues :)
