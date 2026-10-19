@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.27)
+echo FGPlayer (Public Beta v.1.28)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 if exist LANG.bat echo Loading LANG.bat file ... && call LANG.bat
@@ -134,7 +134,7 @@ set sessiondate=%sessiondate:Sun =%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.27 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.28 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
@@ -354,8 +354,8 @@ set serverip2=%serverip1:~0,-5%
 set serverip2=%serverip2::=%
 REM del server_details.sys /Q /F >NUL
 REM curl http://ip-api.com/line/%serverip2%?fields=country,regionName,city --silent >server_details.sys
-ping %serverip2% -n 1 -w 700 >"%cd%\pinganswer.sys"
-for /f "tokens=1*delims=:" %%G in ('findstr /n "^" %cd%\pinganswer.sys') do if %%G equ 3 set ping1=%%H
+ping %serverip2% -n 1 -w 2000 >"%cd%\pinganswer.sys"
+for /f "tokens=1*delims=:" %%G in ('findstr /n "^" "%cd%\pinganswer.sys"') do if %%G equ 3 set ping1=%%H
 md pingtest
 set currentcd=%cd%
 cd pingtest
@@ -1564,7 +1564,7 @@ cls
 echo ^[################ ^] %text.start.createparty%
 :cur_waitloginstep17
 more /e +%lines% "%logfile%" >TEMP.gen
-find "[PartyStateManager] Create native party" TEMP.gen >nul
+find "[PartyStateManager] Created core party" TEMP.gen >nul
 if not %errorlevel%==0 goto cur_waitloginstep17
 cls
 echo Done! Updating log file ...
