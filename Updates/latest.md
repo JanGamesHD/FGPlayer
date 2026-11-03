@@ -1,2 +1,1 @@
-- Fixed script getting stuck when the Epic Games verison of the game was used while creating the core party
-- (Hopefully) fixed ping detection issues :)
+- Round specific stats are now being recorded and can be implemented via text source into OBS, or other tools
