@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.28)
+echo FGPlayer (Public Beta v.1.29)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 if exist LANG.bat echo Loading LANG.bat file ... && call LANG.bat
@@ -21,7 +21,7 @@ if not defined text.connectedping set text.connectedping=Ping
 if not defined text.connectedpid set text.connectedpid=Player ID
 if not defined text.issquadgame set text.issquadgame=SQ
 
-if not defined text.loading_waitmap set text.loading_waitmap=Waiting for Map ...
+if not defined text.loading_waitmap set text.loading_waitmap=Waiting for Map
 if not defined text.loadingmap set text.loadingmap=Loading map ...
 if not defined text.loadingmap_known set text.loadingmap_known=Loading Map
 if not defined text.loadingmap_done set text.loadingmap_done=Map loaded. Loading map details ...
@@ -134,7 +134,7 @@ set sessiondate=%sessiondate:Sun =%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.28 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.29 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
@@ -435,9 +435,15 @@ set completedunimapdetection=0
 set completedcreativelevel=0
 set wasinmatchmaking=
 set iscreative=0
+set dotload=.
+set gmncode=unknown
+set dotcount=0
 set addinfo=
 :cur_waitforanimationtofinish
 rem copy "%userprofile%\AppData\LocalLow\Mediatonic\FallGuys_client\Player.log" TEMP1.log >NUL
+echo %ESC%[1;1H%text.loading_waitmap% %dotload%
+if %dotcount% LSS 100 set dotload=%dotload%.
+if %dotcount% LSS 100 set /a dotcount=%dotcount%+1
 more /e +%lines% "%logfile%" >TEMP.gen
 find /i "Requesting spawn of local player" TEMP.gen >NUL
 if %errorlevel%==0 goto cur_waitformaploadtocomplete
@@ -471,6 +477,8 @@ cls
 echo %text.loadingmap_done%
 color e
 if exist private\fmedia.bat taskkill /F /IM fmedia.exe >NUL
+if not exist STATS\SESSION\ROUNDS\%gmncode%\ md STATS\SESSION\ROUNDS\%gmncode%
+if not exist STATS\ALLTIME\ROUNDS\%gmncode%\ md STATS\ALLTIME\ROUNDS\%gmncode%
 type nul>quittimer.sys
 find /i "[StateGameLoading] Finished loading game level, assumed to be" TEMP.gen >mapresults1.sys
 For /F "UseBackQ Delims==" %%A In ("%cd%\mapresults1.sys") Do Set lastlinemap=%%A
@@ -865,6 +873,18 @@ color 6
 echo %ESC%[1;1H%text.roundover.round% %currentround% %text.roundover.over% %text.roundover.timetook%: %seconds: =%s - %text.roundover.map%: !mapname! - %text.roundover.qualified%: %playersqualified% - %text.roundover.youwon%
 set usernoteliminated=1
 if exist private\fmedia\fmedia.exe start /min conhost --headless cmd /c private\fmedia\fmedia.exe private\fmedia\won.mp3
+if not exist STATS\SESSION\ROUNDS\%gmncode%\ md STATS\SESSION\ROUNDS\%gmncode%
+if not exist STATS\SESSION\ROUNDS\%gmncode%\wins.sys echo 0 >STATS\SESSION\ROUNDS\%gmncode%\wins.sys
+set /p gmnwins=<STATS\SESSION\ROUNDS\%gmncode%\wins.sys
+set gmnwins=%gmnwins: =%
+set /a gmnwins=%gmnwins%+1
+echo %gmnwins% >STATS\SESSION\ROUNDS\%gmncode%\wins.sys
+if not exist STATS\ALLTIME\ROUNDS\%gmncode%\ md STATS\ALLTIME\ROUNDS\%gmncode%
+if not exist STATS\ALLTIME\ROUNDS\%gmncode%\wins.sys echo 0 >STATS\ALLTIME\ROUNDS\%gmncode%\wins.sys
+set /p gmnwins=<STATS\ALLTIME\ROUNDS\%gmncode%\wins.sys
+set gmnwins=%gmnwins: =%
+set /a gmnwins=%gmnwins%+1
+echo %gmnwins% >STATS\ALLTIME\ROUNDS\%gmncode%\wins.sys
 )
 goto cur_afterrounddisplaycheck
 :cur_roundoverelimuser
@@ -1075,6 +1095,7 @@ if not exist MAPS\%unimap%.map set mapname=%unimap:FallGuy_=%
 if exist MAPS\%unimap%.map set /p mapname=<MAPS\%unimap%.map
 rem cls
 echo %ESC%[1;1H%text.loadingmap_known% !mapname! (%theunimap%) ...
+set gmncode=%theunimap%
 set mapmsg=%text.loadingmap_known% !mapname! (%theunimap%) ...
 if %performclip%==1 echo %mapname% (%theunimap%) | clip
 if not exist STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt goto cur_onlywaitformapload
@@ -1269,6 +1290,7 @@ set completedcreativelevel=1
 set mapname=!mapname:\u0027='!
 rem cls
 echo %ESC%[1;1H%text.loadingmap_known% !mapname! (%sharecode%) ...
+set gmncode=%sharecode%
 set mapmsg=%text.loadingmap_known% !mapname! (%sharecode%) ...
 goto cur_onlywaitformapload
 
