@@ -1,6 +1,6 @@
 @echo off
 color c
-echo FGPlayer (Public Beta v.1.29)
+echo FGPlayer (Public Beta v.1.30_27)
 if exist langs\init.txt type langs\init.txt && goto afterinitmsg
 echo Please wait. Initializing FGPlayer...
 if exist LANG.bat echo Loading LANG.bat file ... && call LANG.bat
@@ -134,7 +134,7 @@ set sessiondate=%sessiondate:Sun =%
 if exist STATS\lastsession.txt goto verifysession
 :aftersessioncheck
 echo %sessiondate%>STATS\lastsession.txt
-set useragent=FGPlayer/1.29 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
+set useragent=FGPlayer/1.30 Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0
 if exist langs\readyfile.txt type langs\readyfile.txt && goto wffg
 echo Done. Please start Fall Guys
 echo Report any bugs you encounter to https://github.com/JanGamesHD/FGPlayer/issues
@@ -1102,6 +1102,8 @@ if not exist STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt goto cur_onlywaitformapl
 dir /tw STATS\ALLTIME\ROUNDS\%theunimap%\plays.txt | find "plays.txt" >getlvllastplay.txt
 set /p addinfo=<getlvllastplay.txt
 set addinfo=%addinfo:~0,17%
+if not exist STATS\ALLTIME\ROUNDS\%theunimap%\qualifications.txt echo 0 >STATS\ALLTIME\ROUNDS\%theunimap%\qualifications.txt
+if not exist STATS\ALLTIME\ROUNDS\%theunimap%\eliminations.txt echo 0 >STATS\ALLTIME\ROUNDS\%theunimap%\eliminations.txt
 set /p mapstatsqual=<STATS\ALLTIME\ROUNDS\%theunimap%\qualifications.txt
 set /p mapstatselim=<STATS\ALLTIME\ROUNDS\%theunimap%\eliminations.txt
 
@@ -1125,12 +1127,14 @@ set /a whole=%scaled% / 100
 set /a frac_raw=%scaled% %% 100
 
 :: 5. Pad leading zero for the fractional part if needed
+if not defined frac_raw goto skip_nofracraw
+
 if %frac_raw% LSS 10 (
     set fractional=0%frac_raw%
 ) else (
     set fractional=%frac_raw%
 )
-
+:skip_nofracraw
 rem echo Qualification Rate: %whole%.%fractional%%%
 set whole=%whole: =%
 set fractional=%fractional: =%
